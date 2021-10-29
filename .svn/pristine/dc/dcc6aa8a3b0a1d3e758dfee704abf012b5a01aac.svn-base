@@ -1,0 +1,19 @@
+import Vue from 'vue'
+import VueRouter from 'vue-router'
+import Focus from '../views/focus/focus.vue'
+
+Vue.use(VueRouter)
+
+const routes = [
+  {
+    path: '/',
+    name: 'Focus',
+    component: Focus
+  },
+]
+
+const router = new VueRouter({
+  routes
+})
+
+export default router

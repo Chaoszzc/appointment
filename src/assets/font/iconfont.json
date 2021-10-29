@@ -1,0 +1,23 @@
+{
+  "id": "2760028",
+  "name": "ezeb",
+  "font_family": "iconfont",
+  "css_prefix_text": "iconfont-",
+  "description": "",
+  "glyphs": [
+    {
+      "icon_id": "7290552",
+      "name": "点击",
+      "font_class": "dianji",
+      "unicode": "e612",
+      "unicode_decimal": 58898
+    },
+    {
+      "icon_id": "10547044",
+      "name": "电动车",
+      "font_class": "diandongche",
+      "unicode": "e652",
+      "unicode_decimal": 58962
+    }
+  ]
+}

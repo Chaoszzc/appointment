@@ -1,0 +1,313 @@
+<template>
+  <div class="page" :style="curHeight" v-show="pageshow">
+    <div class="content">
+      <div class="headArea"></div>
+      <div class="iconArea">
+        <van-icon name="wechat" color="white" size="50px" />
+      </div>
+      <div class="tipArea">
+        <label style="margin: 0 50px; font-size: 12px; color: white"
+          >请长按二维码，点击"前往图中包含的公众号"关注微信公众号。</label
+        >
+      </div>
+      <div class="imgArea">
+        <img class="fimg" src="../../assets/qrcode.jpg" model="scaleToFill" />
+      </div>
+      <div class="tipArea">
+        <label style="font-size: 12px; color: white">微信公众服务平台</label>
+      </div>
+      <div class="footArea">
+        <label @click="click">我已关注，点击进入</label>
+        <van-icon class-prefix="iconfont" name="dianji" color="white" size="20" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import { Toast } from "vant";
+import { Dialog } from "vant";
+import Common from "../Common.vue";
+import crypt from "../../util/crypt";
+
+var hiddenProperty =
+  "hidden" in document
+    ? "hidden"
+    : "webkitHidden" in document
+    ? "webkitHidden"
+    : "mozHidden" in document
+    ? "mozHidden"
+    : null;
+
+export default {
+  data() {
+    return {
+      pageshow: false,
+      curHeight: {
+        height: "",
+      }, //当前所需屏幕高度
+
+      //获取用户信息地址
+      codeUrl: "",
+      //用户信息相关
+      isGetUser: false,
+      isfocus: false,
+    };
+  },
+  created() {
+    console.log("create执行");
+    document.addEventListener("visibilitychange", this.goBack);
+    // this.getParams();
+    this.pageshow = true
+  },
+  beforeDestroy() {
+    console.log("beforeDestroy执行");
+    document.removeEventListener("visibilitychange", this.goBack);
+  },
+  //获取屏幕高度
+  beforeMount() {
+    console.log("beforeMount执行");
+    var h = document.documentElement.clientHeight || document.body.clientHeight;
+    this.curHeight.height = h + "px"; //减去页面上固定高度height
+    console.log(this.curHeight.height);
+  },
+
+  mounted() {},
+  methods: {
+    getUrlKey: function () {
+      var name = "code";
+      return (
+        decodeURIComponent(
+          (new RegExp("[?|&]" + name + "=" + "([^&;]+?)(&|#|;|$)").exec(
+            location.href
+          ) || [, ""])[1].replace(/\+/g, "%20")
+        ) || null
+      );
+    },
+
+    goBack() {
+      console.log(hiddenProperty);
+      if (document[hiddenProperty]) {
+        //当离开H5 跳转到app原生的页面时,这里会被触发
+        console.log("页面隐藏了");
+      } else {
+        //当从原生页面用户一系列操作后,返回H5的时候,这里会被触发
+        console.log("页面展示了");
+        window.location.href = this.codeUrl;
+      }
+    },
+
+    click() {
+      // this.$router.replace("/home");
+      window.location.href = this.codeUrl;
+    },
+
+    /**
+     * 获取用户信息
+     */
+    getUserInfo(wxcode) {
+      let _that = this;
+      console.log("appid", crypt.Encrypt(Common.appid));
+      console.log("secret", crypt.Encrypt(Common.secret));
+      var param = {
+        grant_type: "authorization_code",
+        // appid: crypt.Encrypt(Common.appid),
+        appid: Common.appid,
+        secret: crypt.Encrypt(Common.secret),
+        // secret: Common.secret,
+        code: wxcode,
+        scope: "snsapi_userinfo",
+      };
+      _that.$http.getOpenId(param).then(
+        (res) => {
+          let d = res.data;
+          console.log("查询用户信息为：", d);
+          if (d.code != "0") {
+            switch (d.code) {
+              case "1":
+                if (d.content != null) {
+                  var userInfo = JSON.parse(d.content);
+                  Common.userInfo = userInfo;
+                  Common.openId = userInfo.openid;
+                  console.log("sub", userInfo.subscribe);
+                  console.log("userInfo.subscribe === 0", userInfo.subscribe === 0);
+                  if (userInfo.subscribe === 0) {
+                    _that.pageshow = true;
+                  } else {
+                    Common.isfocus = true;
+                    _that.$router.replace("/home");
+                  }
+                  console.log(Common.userInfo);
+                }
+                break;
+              case "2":
+                var openid = JSON.parse(d.content).openid;
+                console.log(openid);
+                Common.openId = openid;
+                break;
+            }
+          } else {
+            Dialog.alert({
+              title: "失败",
+              message: d.msg,
+            }).then(() => {
+              // on close
+            });
+          }
+          return true;
+        },
+        (err) => {
+          Toast("获取用户信息异常" + err);
+          return false;
+        }
+      );
+    },
+
+    /**
+     * 获取微信授权
+     */
+    getWxCode() {
+      var that = this;
+      if (
+        sessionStorage.getItem("app_codeUrl") == null ||
+        sessionStorage.getItem("app_codeUrl") == ""
+      ) {
+        console.log("获取code地址失败");
+      } else {
+        that.codeUrl = sessionStorage.getItem("app_codeUrl");
+        console.log("app_codeUrl", that.codeUrl);
+      }
+      var urlCode = that.getUrlKey();
+      console.log(urlCode);
+      if (urlCode == "" || urlCode == null) {
+        window.location.href = that.codeUrl;
+      } else {
+        that.getUserInfo(urlCode);
+      }
+    },
+
+    /**
+     * 获取参数
+     */
+    getParams() {
+      let _that = this;
+      _that.$http.getParam({ type: "EZEB" }).then(
+        (res) => {
+          const resData = res.data;
+          console.log("查询参数结果为：", resData);
+          if (resData != null && resData !== "") {
+            if (resData.code !== "1") {
+              Toast("查询参数失败" + resData.msg);
+              return false;
+            } else {
+              console.log("content", resData.content);
+              var dataValue = JSON.parse(resData.content);
+              console.log("JSON", dataValue);
+              if (dataValue != null && dataValue.length > 0) {
+                dataValue.forEach((Element) => {
+                  if (Element.paramId.substr(0, 4) == "app_") {
+                    sessionStorage.setItem(Element.paramId, Element.paramValue);
+                  }
+                });
+                if (
+                  sessionStorage.getItem("app_id") == null ||
+                  sessionStorage.getItem("app_id") == ""
+                ) {
+                  console.log("获取appid失败");
+                } else {
+                  Common.appid = sessionStorage.getItem("app_id");
+                  console.log("Common.appid", Common.appid);
+                }
+                if (
+                  sessionStorage.getItem("app_secret") == null ||
+                  sessionStorage.getItem("app_secret") == ""
+                ) {
+                  console.log("获取secret失败");
+                } else {
+                  Common.secret = sessionStorage.getItem("app_secret");
+                  console.log("Common.secret", Common.secret);
+                }
+                if (
+                  sessionStorage.getItem("app_piczl") == null ||
+                  sessionStorage.getItem("app_piczl") == ""
+                ) {
+                  console.log("获取piczl失败");
+                } else {
+                  Common.piczl = sessionStorage.getItem("app_piczl");
+                  console.log("Common.pizl", Common.piczl);
+                }
+                this.getWxCode();
+                // this.$router.push({path:"/home"})
+                return true;
+              } else {
+                Toast("未查询到相关参数信息！");
+                return false;
+              }
+            }
+          } else {
+            Toast("未查询到相关参数信息！");
+            return false;
+          }
+        },
+        (err) => {
+          Toast("参数查询异常" + err);
+          return false;
+        }
+      );
+    },
+  },
+};
+</script>
+
+<style scoped>
+.page {
+  width: 100%;
+  background-color: #3399cc;
+}
+.content {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+}
+.headArea {
+  width: 100%;
+  height: 15%;
+}
+.iconArea {
+  width: 100%;
+  height: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.tipArea {
+  width: 100%;
+  height: 10%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.imgArea {
+  width: 100%;
+  height: 30%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.footArea {
+  width: 100%;
+  height: 25%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+}
+.fimg {
+  width: 130px;
+  height: 130px;
+}
+.tipArea {
+  width: 100%;
+}
+</style>

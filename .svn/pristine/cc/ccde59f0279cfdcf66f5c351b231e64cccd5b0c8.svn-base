@@ -1,0 +1,73 @@
+<template>
+  <div class="nav-title">
+    <van-icon
+      class="head-icon"
+      name="arrow-left"
+      size="25"
+      color="white"
+      @click="onClickLeft"
+      v-show="showLeft"
+    />
+    <div class="title-img">
+      <img src="../assets/images/police.png" />
+    </div>
+    <div>
+      <label class="titleStyle">{{ title }}</label>
+    </div>
+  </div>
+</template>
+<script>
+export default {
+  name: "Navtitle",
+  props: {
+    title: {
+      type: String,
+      default: "鄂州业务预约系统",
+    },
+    showLeft: {
+      type: Boolean,
+      default: false,
+    }
+  },
+  methods: {
+    onClickLeft(event) {
+      console.log("点击返回");
+      this.$emit('click-left', event);
+    },
+  },
+};
+</script>
+<style scoped>
+.nav-title {
+  position: relative;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+  height: 46px;
+  width: 100%;
+  background-color: #BDE3EC;
+}
+.title-img {
+  width: 36px;
+  height: 36px;
+}
+
+.titleStyle {
+  margin: 0 5px;
+  color: darkblue;
+  font-weight: bold;
+  font-size: 20px;
+}
+
+.head-icon {
+  position: absolute;
+  left: 10px;
+}
+
+img {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+</style>
